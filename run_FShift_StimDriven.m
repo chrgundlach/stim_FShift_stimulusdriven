@@ -51,46 +51,23 @@ p.isol.init_cols        = p.isol.override;
 
 
 % stimplan
-p.stim.RDKcenter        = [1 2; 1 3; 2 1; 2 3; 3 1; 3 2]; % defines which RDK colors are shown in center [for first half and second half]
+p.stim.center_col       = [1 2; 1 3; 2 1; 2 3; 3 1; 3 2]; % defines which colors are shown in center [for first half and second half]
                             % red -> green; red -> blue; green -> red; green -> blue; blue -> red; blue -> green
-p.stim.RDKperi          =  [1 2; 1 3; ... % defines which RDKcolors are shown in the periphery [red green blue by left right]
-                            2 1; 2 3; ...
-                            3 1; 3 2];
-p.stim.condition        = [1:size(p.stim.RDKcenter,1)*size(p.stim.RDKperi,1)];    
+                            % RDK color is randomized later on
+p.stim.RDKperi_col      =  [1 2 ... % defines which RDKcolors are shown in the periphery [red green blue by left right];
+                            ];
+p.stim.task             = [1 2]; % 1 = RDK task; 2 = rectangle task
+p.stim.condition        = [1:size(p.stim.center_col,1)*size(p.stim.RDKperi_col,1)*numel(p.stim.task )];    
                         % main experimental conditions: 
-                        %   ATTENTION [att. color first half; att. color second half]
-                        %   SIDE [first half second half; tracked left (1) vs right (2) vs untracked (0)]
-p.stim.RDKcenter_peri_i = table2array(combinations(1:size(p.stim.RDKcenter,1),1:size(p.stim.RDKperi,1))); % index of RDKcenter condition [X,];  % index of RDKperi condition [,X];
-% do calculations for conditions
-t.input = mat2cell(p.stim.RDKcenter_peri_i,ones(1,size(p.stim.RDKcenter_peri_i,1)));
-%   ATTENTION [att. color first half; att. color second half]
-p.stim.con_ATTENTION    = cell2mat(cellfun(@(x) ismember(p.stim.RDKcenter(x(1),:),p.stim.RDKperi(x(2),:)), ...
-                            t.input,'UniformOutput',false));
-p.stim.con_ATTENTION_lab= repmat("unattended",size(p.stim.con_ATTENTION));
-p.stim.con_ATTENTION_lab(p.stim.con_ATTENTION)="attended";
-%   SIDE [first half second half; tracked left (1) vs right (2) vs untracked (0)]
-p.stim.con_SIDE         = zeros(size(p.stim.con_ATTENTION));
-for i_con = 1:size(p.stim.con_ATTENTION,1) % loop across all conditions
-    for i_time = 1:size(p.stim.con_ATTENTION,2) % loop across timewindows (color changes between)
-        t.temp = find(p.stim.RDKcenter(t.input{i_con}(1),i_time) == p.stim.RDKperi(t.input{i_con}(2),:));
-        if ismember(t.temp,[1 2])
-            p.stim.con_SIDE(i_con,i_time) = ...
-                find(p.stim.RDKcenter(t.input{i_con}(1),i_time) == p.stim.RDKperi(t.input{i_con}(2),:));
-        end
-    end
-end
-p.stim.con_SIDE_lab     = repmat("untracked",size(p.stim.con_SIDE));
-p.stim.con_SIDE_lab(p.stim.con_SIDE==1)="left";
-p.stim.con_SIDE_lab(p.stim.con_SIDE==2)="right";
-
-p.stim.eventnum_e       = [0 0 0 0 0 0 0 0 1 2 3 4];        % ratio of eventnumbers for experiment
+                        %   TASK/ATTENTION [RDK task; rectangle task]
+                        %   COLORCHANGE [c1 -> c2; c1 -> c3; c2 -> c1; c2 -> c3; c3 -> c1; c3 -> c2]
 p.stim.eventnum_e       = [0 0 0 0 1 2 3 4];        % ratio of eventnumbers for experiment
 p.stim.eventnum_t       = [0 0 1 2 3 4];        % ratio of eventnumbers for training
-p.stim.con_repeats      = [2];  % trial number/repeats for each eventnum and condition
+p.stim.con_repeats      = [8];  % trial number/repeats for each eventnum and condition
 p.stim.con_repeats_t    = [1];              % trial number/repeats for each eventnum and condition
 p.stim.triallength      = [4.8];
 p.stim.time_prechange   = [1.8 3];          % precue time in s; [upper lower] for randomization
-p.stim.event.type       = 2;                % types of events (1 = targets only, 2 = targets + distrators)
+p.stim.event.type       = 1;                % types of events (1 = targets only, 2 = targets + distrators)
 p.stim.event.length     = 0.3;              % lengt of events in s
 p.stim.event.min_onset  = 0.4;              % min post-cue time before event onset in s
 p.stim.event.min_offset = 0;                % min offset from target end to end of trial in s
@@ -98,11 +75,20 @@ p.stim.event.min_dist   = 0.8;              % min time between events in s
 p.stim.blocknum         = 24;               % number of blocks
 p.stim.ITI              = [1 1];            % ITI range in seconds
 
+% event parameter for rectangle modulations
+p.stim.event.rect_mod       = {[1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
+                                [1 0 1 0; 0 1 0 1]};   % which synchronous changes [top right bottom left] are to be discriminated {class 1; class 2}
+p.stim.event.rect_modsize   = [4];                  % size of rectangle modulations in pixels
+p.stim.event.rect_moddur    = p.stim.event.length;   % duration of event length
+
+% event parameter for RDK modulations
+p.stim.event.RDK_movdir     = {[1 0 0 0; 0 1 0 0];
+                                [0 0 1 0; 0 0 0 1]};   % which directions are to be discriminated; according to RDK.RDK(1).mov_dir below [up down vs left right]{class 1; class 2}
 
 % introduce RDK structure
 RDK.RDK(1).size         = [154 308];                    % width and height of RDK in pixel; only even values [38 = 9.6°]
 RDK.RDK(1).centershift  = [0 0];                        % position of RDK center; x and y deviation from center in pixel
-RDK.RDK(1).col          = [1 1 1 1; p.scr_color(1:3) 0];% "on" and "off" color
+RDK.RDK(1).col          = [0.3 0.3 0.3 1; p.scr_color(1:3) 0];% "on" and "off" color
 RDK.RDK(1).freq         = 0;                            % flicker frequency, frequency of a full "on"-"off"-cycle
 RDK.RDK(1).mov_freq     = 120;                          % Defines how frequently the dot position is updated; 0 will adjust the update-frequency to your flicker frequency (i.e. dot position will be updated with every "on"-and every "off"-frame); 120 will update the position for every frame for 120Hz or for every 1. quadrant for 480Hz 
 RDK.RDK(1).num          = 85;                           % number of dots % 85
@@ -124,7 +110,7 @@ p.stim.colors           = ...                           % "on" and "off" color
     [0 1 0 1; p.scr_color(1:3) 0];...
     [0 0.4 1 1; p.scr_color(1:3) 0]};
     % plot_colorwheel([1 0.4 0; 0 0.4 1; 0 1 0; 1 0 1],'ColorSpace','propixxrgb','LAB_L',50,'NumSegments',60,'AlphaColWheel',1,'LumBackground',100)
-p.stim.color_names      = {'redish';'green';'blue'};
+p.stim.color_names      = {'red';'green';'blue'};
  
 RDK.event.type          = 'globalmotion';       % event type global motion
 RDK.event.duration      = p.stim.event.length;  % time of coherent motion
@@ -143,7 +129,7 @@ p.trig.rec_stop         = 254;                  % trigger to stop recording
 p.trig.tr_start         = 77;                   % trial start; main experiment
 p.trig.tr_stop          = 88;                   % trial end; main experiment
 p.trig.tr_con_center    = [1 2 3 4 5 6 ]*10;    % color change for central stimulus
-p.trig.tr_con_peri      = [1 2 3 4 5 6];        % indices for p.stim.RDKperi
+p.trig.tr_con_task      = [0 1];                % indices for task
 p.trig.button           = 150;                  % button press
 p.trig.event_type       = [201 202];            % target, distractor
 
@@ -214,20 +200,26 @@ key.keymap_ind = find(key.keymap);
 %% start experiment
 % initialize randomization of stimulation frequencies and RDK colors
 % inititalize RDKs [RDK1 and RDK2 task relevant at center;  RDK3 RDK4 RDK5 not and in periphery]
-rand('state',1)
-% quasi randomize position
-t.pos = [];
-for i_rep = 1:100
-    t.pos = cat(1,t.pos,p.stim.pos_shift(randsample(1:2,2),:));
-end
-
-
 % rand('state',p.sub)
 rng(p.sub,'v4')
 
 RDK.RDK(1).col_init = RDK.RDK(1).col;
+RDK.RDK(1).col_name = "grey";
 RDK.RDK(2:3) = deal(RDK.RDK(1));
 
+% randomize colors
+t.idx = randperm(numel(p.stim.colors));
+
+% change colors for this participant
+p.stim.colors = p.stim.colors(t.idx);
+p.stim.color_names = p.stim.color_names(t.idx);
+p.isol.init_cols = p.isol.init_cols(t.idx,:);
+
+for i_rdk = 1:2
+    RDK.RDK(1+i_rdk).col = p.stim.colors{i_rdk};
+    RDK.RDK(1+i_rdk).col_init = p.stim.colors{i_rdk};
+    RDK.RDK(1+i_rdk).col_name = p.stim.color_names{i_rdk};
+end
 
 % randomize frequencies
 % not for center
@@ -466,7 +458,7 @@ end
 % randomization
 % rand('state',p.sub);                         % determine randstate
 rng(p.sub,'v4')
-randmat.experiment = rand_FShift_PerIrr(p, RDK,  0);    % randomization
+randmat.experiment = rand_FShift_StimDriven(p, RDK,  0);    % randomization
 for i_bl = p.flag_block:p.stim.blocknum
     % start experiment
     [timing.experiment{i_bl},button_presses.experiment{i_bl},resp.experiment{i_bl}] = ...
