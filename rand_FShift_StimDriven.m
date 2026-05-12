@@ -51,8 +51,6 @@ for i_tr = 1:conmat.totaltrials
 end
 
 
-
-
 % randomize event numbers per trial
 % check if event numbers add up
 if mod(conmat.totaltrials,numel(p.stim.eventnum))~=0 || mod(conmat.totaltrials/numel(p.stim.eventnum),2)~=0
@@ -156,8 +154,11 @@ t.idx2 = repmat(t.idx,[1,1,4]);
 conmat.mats.RDKeventdirection(t.idx2) = t.dirsall(t.randidx,:);
 % label the direction
 conmat.mats.RDKeventdirection_lab(t.idx) = t.dirsall_lab(t.randidx);
+% troubleshooting
+% tmat = sum(conmat.mats.RDKeventdirection,3);
 
-% randomize event changes of rectable events [evnnum x trials x direction]
+
+% randomize event changes of rectangle events [evnnum x trials x direction]
 conmat.mats.RECTeventpos = nan(max(p.stim.eventnum),conmat.totaltrials,4);
 conmat.mats.RECTeventpos_lab = repmat("",max(p.stim.eventnum),conmat.totaltrials);
 t.posall = cell2mat(p.stim.event.rect_mod); % index of modulations [top right bottom left]
@@ -172,6 +173,8 @@ for i_class = 1:2 % for target event classes
     [~, t.ridx] = ismember(p.stim.event.rect_mod{i_class}, t.posall, 'rows');
     conmat.mats.RECTeventpos_lab(t.idx) = t.posall_lab(t.ridx(t.randidx)); 
 end
+% troubleshooting
+% tmat = sum(conmat.mats.RECTeventpos,3);
 
 
 % randomize pre-color change times (and get respective post-color frames)
@@ -222,8 +225,6 @@ end
 
 for i_evnum = 1:max(p.stim.eventnum)
     % first define the sampling of the relevant timewindows
-    t.relwins = [flip(1:i_evnum); 1:i_evnum]; t.relwins = t.relwins(1:i_evnum);
-    t.relwins2 = [flip(2:2:i_evnum+1); ones(1,round(i_evnum/2))]; t.relwins2 = t.relwins2(1:i_evnum);
     % do this separately for all the relevant conditions
     for i_con = 1:numel(t.uniqueatt)
         % index the condition number that fullfills the attention tracking condition t.uniquecon
@@ -233,6 +234,16 @@ for i_evnum = 1:max(p.stim.eventnum)
         t.idx_i = find(t.idx);
         % loop across trials
         for i_tr = 1:numel(t.idx_i)
+            
+            % how to organize the priority of the windows to be filled?
+            % first higher than lower?
+            t.relwins = [flip(1:i_evnum); 1:i_evnum]; t.relwins = t.relwins(1:i_evnum);
+            % t.relwins2 = [flip(2:2:i_evnum+1); ones(1,round(i_evnum/2))]; t.relwins2 = t.relwins2(1:i_evnum);
+            % first lower than higher?
+            % t.relwins = [1:i_evnum; flip(1:i_evnum)]; t.relwins = t.relwins(1:i_evnum);
+
+            % % random select sequence
+            t.relwins = randperm(i_evnum);
 
             % here the flips need to be adjusted
             % first define onsets centered at color change
@@ -270,70 +281,85 @@ for i_evnum = 1:max(p.stim.eventnum)
             % loop through events
             for i_ev = 1:numel(t.relwins)
                 % define possible windows
-                % first: find upper and lower boundaries for events, this depends on possibly placed events already and the
-                % type of events already placed and to be placed
+                % rationale:
+                % the order of which event needs to be placed first is defined by t.relwins
+                % need to consider number of events to be placed earlier or later
 
-                % need to define boundaries
-                % are there already events we need to consider?
-                % define upper and lower boundary accordingly
-                % upper boundary first
-                if i_ev>1
-                else
+                % first define upper boundary
+                t.boundup =  []; t.boundlow = []; t.start = []; t.stop = [];% safety for checking that both values are indeed defined!
+                if t.relwins(i_ev) == max(t.relwins) % if it is the last event to be defined
                     % this depends on the length of the specific event
                     t.boundup = max(t.onframesonset_times( ...
                         t.onframesonset_times<(max(t.onframesonset_times)-t.evdurations(t.relwins(i_ev))-p.stim.event.min_offset) ...
                         ));
-                    t.boundlow = min(t.onframesonset_times(t.onframesonset_times>p.stim.event.min_onset));
-                end
-
-
-
-                find(t.relwins)==t.relwins(i_ev)+1
-                conmat.mats.event_onset_times(:,t.idx_i(i_tr))
-
-
-
-                
-                % are there already events we need to consider?
-                % define upper and lower boundary accordingly
-                if i_ev>1
-                    % if there are already events consider them for upper boundary
-                    t.tevtimes = sort(conmat.mats.event_onset_times(~isnan(conmat.mats.event_onset_times(:,t.idx_i(i_tr))),t.idx_i(i_tr)));
-                    t.boundup =  max(t.onframesonset_times(t.onframesonset_times < ...
-                        (t.tevtimes(end-floor(i_ev/2)+1) - t.evdurations(t.relwins(i_ev)) - p.stim.event.min_dist) ...
-                        ));
-                    if i_ev>2 
-                        t.boundlow = min(t.onframesonset_times(t.onframesonset_times>t.tevtimes(ceil(i_ev/2)-1) + t.evdurations(ceil(i_ev/2)-1) + p.stim.event.min_dist));
+                else % there are other events that need to be placed after the current event; needs to be considered
+                    % define other events to be placed before
+                    t.idx_ev2consider = isnan(conmat.mats.event_onset_frames(:,t.idx_i(i_tr)))' & ... % all events 2 be placed
+                        [1:max(p.stim.eventnum)]>t.relwins(i_ev) & ...
+                        [1:max(p.stim.eventnum)] <= i_evnum;
+                    % are there already events placed (then this event is end point)
+                    if any(~isnan(conmat.mats.event_onset_times(:,t.idx_i(i_tr)))' & ...
+                            [1:max(p.stim.eventnum)]>t.relwins(i_ev) & ...
+                            [1:max(p.stim.eventnum)] <= i_evnum ...
+                            )
+                        % this event  + min distance
+                        t.stop = min(conmat.mats.event_onset_times( ...
+                            ~isnan(conmat.mats.event_onset_times(:,t.idx_i(i_tr)))' & ...
+                            [1:max(p.stim.eventnum)]>t.relwins(i_ev) & ...
+                            [1:max(p.stim.eventnum)] <= i_evnum, ...
+                            t.idx_i(i_tr)));%- ...% this is the eventtime to consider
+                            %(p.stim.event.min_dist+1/RDK.RDK(1).freq); % min distance between events needs to be considered
+                        % consider only events between the current and the previously defined one
+                        t.idx_ev2consider =  t.idx_ev2consider & ...
+                            [1:max(p.stim.eventnum)] < max(find(~isnan(conmat.mats.event_onset_frames(t.relwins(i_ev)+1:end,t.idx_i(i_tr)))));
                     else
-                        t.boundlow = min(t.onframesonset_times(t.onframesonset_times>p.stim.event.min_onset));
+                        % t.stop = max(t.onframesonset_times( ...
+                        %     t.onframesonset_times< ...
+                        %     (max(t.onframesonset_times)-t.evdurations(t.relwins(i_ev))-p.stim.event.min_offset-(p.stim.event.min_dist+1/RDK.RDK(1).freq)) ...
+                        %     ));
+                        t.stop = max(t.onframesonset_times( ...
+                            t.onframesonset_times< ...
+                            (max(t.onframesonset_times)-t.evdurations(t.relwins(i_ev))-p.stim.event.min_offset-p.stim.event.min_dist) ...
+                            ));
                     end
-                else
-                    % this depends on the length of the specific event
-                    t.boundup = max(t.onframesonset_times( ...
-                        t.onframesonset_times<(max(t.onframesonset_times)-t.evdurations(t.relwins(i_ev))-p.stim.event.min_offset) ...
-                        ));
+                    % now consider stop value + number of events and their distances and some frames due to jitter
+                    t.boundup = t.stop - sum(t.idx_ev2consider)*(p.stim.event.min_dist+1.5/RDK.RDK(1).freq);
+                end
+
+                % then lower boundary
+                if t.relwins(i_ev) == min(t.relwins)  % if it is the first event to be defined
                     t.boundlow = min(t.onframesonset_times(t.onframesonset_times>p.stim.event.min_onset));
+                else % there are other events that need to be placed before the current event; needs to be considered
+                    % define other events to be placed before
+                    t.idx_ev2consider = isnan(conmat.mats.event_onset_frames(:,t.idx_i(i_tr)))' & ... % all events 2 be placed
+                        [1:max(p.stim.eventnum)]<t.relwins(i_ev) & ... % all earlier events
+                        [1:max(p.stim.eventnum)] <= i_evnum;
+                    % are there already events placed (then this event is starting point)
+                    if any(~isnan(conmat.mats.event_onset_frames(:,t.idx_i(i_tr)))' & ...
+                            [1:max(p.stim.eventnum)]<t.relwins(i_ev) & ...
+                            [1:max(p.stim.eventnum)] <= i_evnum)
+                        % this event  + min distance
+                        t.start = max(conmat.mats.event_onset_times( ...
+                            ~isnan(conmat.mats.event_onset_times(:,t.idx_i(i_tr)))' & ...
+                            [1:max(p.stim.eventnum)]<t.relwins(i_ev) & [1:max(p.stim.eventnum)] <= i_evnum, ...
+                            t.idx_i(i_tr)));% + ...% this is the eventtime to consider
+                            % (p.stim.event.min_dist+1/RDK.RDK(1).freq); % min distance between events needs to be considered
+                        % consider only events between the current and the previously defined one
+                        t.idx_ev2consider =  t.idx_ev2consider & ...
+                            [1:max(p.stim.eventnum)] > max(find(~isnan(conmat.mats.event_onset_frames(1:t.relwins(i_ev)-1,t.idx_i(i_tr)))));
+                    else
+                        % t.start = min(t.onframesonset_times(t.onframesonset_times> ...
+                        %     (p.stim.event.min_onset + (p.stim.event.min_dist+1/RDK.RDK(1).freq))));
+                        t.start = min(t.onframesonset_times(t.onframesonset_times> ...
+                            (p.stim.event.min_onset)));
+                    end
+                    % now consider start value + number of events and their distances adn some frames due to jitter
+                    t.boundlow = t.start + sum(t.idx_ev2consider)*(p.stim.event.min_dist+1.5/RDK.RDK(1).freq);
                 end
-                % now divide the possible time range into different equally spaced time window bins that suffice the constraints
+                % [t.boundlow t.boundup]
                 
-                % need to save minimum time for lower bound or upper bound respectively depending on number of events still
-                % to be distributed
-                % upper boundary: end of trial or next last event - duration + stim length
-                if mod(i_ev,2) ~= 0 % all events starting from the top -> lower bound should be high enough to account for more events
-                    % how many events need to be squeezed before the current one?
-                    t.evidx = t.relwins(find(t.relwins)>i_ev & t.relwins<t.relwins(i_ev));
-                    t.possframes = t.onframesonset_times <= t.boundup & ...
-                        t.onframesonset_times >= (t.boundlow + ...
-                        (numel(t.evidx) * (p.stim.event.min_dist + 1/RDK.RDK(1).freq) + sum(t.evdurations(t.evidx))) ...
-                        );
-                else % lower time windows
-                    t.possframes = t.onframesonset_times>=t.boundlow & ...
-                        t.onframesonset_times <= (t.boundup - ...
-                        ((numel(t.relwins)-i_ev) * (p.stim.event.min_dist + 1/RDK.RDK(1).freq) + sum(t.evdurations((t.relwins(i_ev)+1):end)) ) ...
-                        );
-
-                end
-
+                % now find all possible frames
+                t.possframes = t.onframesonset_times >= t.boundlow & t.onframesonset_times <= t.boundup;
                 % now randomly sample one onset from these time points
                 t.possframes_idx = find(t.possframes);
                 t.randidx = t.possframes_idx(randsample([1:numel(t.possframes_idx)],1));
@@ -343,7 +369,6 @@ for i_evnum = 1:max(p.stim.eventnum)
                 conmat.mats.event_onset_times_centered(t.relwins(i_ev),t.idx_i(i_tr)) = t.onframesonset_times_centered( t.randidx);
                 % conmat.mats.event_onset_times(:,t.idx_i(i_tr))
                 % t.onframesonset_times(t.possframes)
-
             end
 
         end
@@ -355,21 +380,45 @@ end
 % t.data = conmat.mats.event_onset_times-repmat(conmat.mats.pre_change_times,size(conmat.mats.event_onset_times,1),1);
 % figure; histogram(t.data(:),50)
 
-% figure; histogram(conmat.mats.event_onset_times_centered(:),50)
+% figure; subplot(2,1,1); histogram(conmat.mats.event_onset_times(:),50)
+% subplot(2,1,2); histogram(conmat.mats.event_onset_times_centered(:),50)
 
+% troubleshooting
+% conmat.mats.event_onset_frames(:,t.idx_i(i_tr))=nan
+% conmat.mats.event_onset_times(:,t.idx_i(i_tr))=nan
+% conmat.mats.event_onset_times(:,t.idx_i(i_tr))
 
+%% randomize all information across experiment for blocked design
+% task blocks differ across experiment
+conmat.mats.block = repmat(1:conmat.totalblocks,conmat.trialsperblock,1);
+conmat.mats.block = conmat.mats.block(:);
+t.blockidx = repmat(1:2,1,conmat.totalblocks/2);
+t.blockidx = t.blockidx(randperm(conmat.totalblocks));
 
-%% randomize all information across experiment
-t.tidx = randperm(conmat.totaltrials);
+t.tidx = nan(1,conmat.totaltrials);
+for i_task = 1:2
+    % find all trials of the respective task
+    t.taskidx = find(conmat.mats.task == i_task);
+    % now index the the relevant blocks
+    t.blidx = ismember(conmat.mats.block,find(t.blockidx==i_task));
+    t.tidx(t.blidx)=t.taskidx(randperm(numel(t.taskidx)));
+end
 conmat.mats.condition = conmat.mats.condition(:,t.tidx);
-conmat.mats.central_color = conmat.mats.central_color(t.tidx,:);
-conmat.mats.peri_color = conmat.mats.peri_color(t.tidx,:);
+conmat.mats.task = conmat.mats.task(:,t.tidx);
+conmat.mats.central_color = conmat.mats.central_color(:,t.tidx);
+conmat.mats.peri_color = conmat.mats.peri_color(:,t.tidx);
 conmat.mats.peri_attention = conmat.mats.peri_attention(t.tidx);
+conmat.mats.peri_attention_collapsed = conmat.mats.peri_attention_collapsed(:,t.tidx);
 
 conmat.mats.eventnum = conmat.mats.eventnum(:,t.tidx);
 conmat.mats.eventtype = conmat.mats.eventtype(:,t.tidx);
-conmat.mats.eventRDK = conmat.mats.eventRDK(:,t.tidx);
-conmat.mats.eventdirection = conmat.mats.eventdirection(:,t.tidx);
+conmat.mats.eventstim = conmat.mats.eventstim(:,t.tidx);
+conmat.mats.eventdiscrtype = conmat.mats.eventdiscrtype(:,t.tidx);
+conmat.mats.RDKeventdirection = conmat.mats.RDKeventdirection(:,t.tidx,:);
+conmat.mats.RDKeventdirection_lab = conmat.mats.RDKeventdirection_lab(:,t.tidx);
+conmat.mats.RECTeventpos = conmat.mats.RECTeventpos(:,t.tidx,:);
+conmat.mats.RECTeventpos_lab = conmat.mats.RECTeventpos_lab(:,t.tidx);
+
 conmat.mats.event_onset_frames = conmat.mats.event_onset_frames(:,t.tidx);
 conmat.mats.event_onset_times = conmat.mats.event_onset_times(:,t.tidx);
 conmat.mats.event_onset_frames_centered = conmat.mats.event_onset_frames_centered(:,t.tidx);
@@ -379,8 +428,7 @@ conmat.mats.post_change_frames = conmat.mats.post_change_frames(:,t.tidx);
 conmat.mats.pre_change_times = conmat.mats.pre_change_times(:,t.tidx);
 conmat.mats.post_change_times = conmat.mats.post_change_times(:,t.tidx);
 
-conmat.mats.block = repmat(1:conmat.totalblocks,conmat.trialsperblock,1);
-conmat.mats.block = conmat.mats.block(:);
+
 
 %% write all information into trial structure
 % create frame mat, onset time for events
@@ -394,15 +442,21 @@ for i_tr = 1:conmat.totaltrials
     
     % condition 
     conmat.trials(i_tr).condition = conmat.mats.condition(i_tr);
+    
+    % task 
+    conmat.trials(i_tr).task = conmat.mats.task(i_tr);
 
     % central color [time1 time2]
-    conmat.trials(i_tr).central_color = conmat.mats.central_color(i_tr,:);
+    conmat.trials(i_tr).central_color = conmat.mats.central_color(:, i_tr);
 
     % peri color [left right]
-    conmat.trials(i_tr).peri_color = conmat.mats.peri_color(i_tr,:);
+    conmat.trials(i_tr).peri_color = conmat.mats.peri_color(:, i_tr);
 
     % peri attention [left right] columns; [time1 time2] rows
     conmat.trials(i_tr).peri_attention = conmat.mats.peri_attention{i_tr};
+    
+    % peri attention collapsed across positions columns; [time1 time2] rows
+    conmat.trials(i_tr).peri_attention_collapsed = conmat.mats.peri_attention_collapsed{i_tr};
     
     % pre change frames
     conmat.trials(i_tr).pre_change_frames = conmat.mats.pre_change_frames(i_tr);
@@ -410,10 +464,10 @@ for i_tr = 1:conmat.totaltrials
     % post change frames
     conmat.trials(i_tr).post_change_frames = conmat.mats.post_change_frames(i_tr);
 
-    % pre change frames
+    % pre change times
     conmat.trials(i_tr).pre_change_times = conmat.mats.pre_change_times(i_tr);
     
-    % post change frames
+    % post change times
     conmat.trials(i_tr).post_change_times = conmat.mats.post_change_times(i_tr);    
     
     % number of events
@@ -422,11 +476,20 @@ for i_tr = 1:conmat.totaltrials
     % type of events ((target, distractor) [1, 2])
     conmat.trials(i_tr).eventtype = conmat.mats.eventtype(:,i_tr);
     
-    % which RDK shows event?
-    conmat.trials(i_tr).eventRDK = conmat.mats.eventRDK(:,i_tr);
+    % type of event stimulus [1 = RDK; 2 = rectangle]
+    conmat.trials(i_tr).eventstim = conmat.mats.eventstim(:,i_tr);
+   
+    % determine target type (to be discriminated according to p.stim.event.RDK_movdir and p.stim.event.rect_mod)
+    % and distractor if in opposite task [1, 2, 3] [target class 1, target class 2, distractor(other uncued stimulus)]
+    conmat.trials(i_tr).eventdiscrtype = conmat.mats.eventdiscrtype(:,i_tr);
     
-    % eventdirection ((according to RDK.event.direction) [1 2 3 4])
-    conmat.trials(i_tr).eventdirection = conmat.mats.eventdirection(:,i_tr);
+    % RDK event directions (according to RDK.event.direction) ["up","down","left","right"];
+    conmat.trials(i_tr).RDKeventdirection = squeeze(conmat.mats.RDKeventdirection(:,i_tr,:));
+    conmat.trials(i_tr).RDKeventdirection_lab = conmat.mats.RDKeventdirection_lab(:,i_tr);
+    
+    % event changes of rectangle events (according to p.stim.event.rect_mod) ["top","right","bottom","left","top_bottom","left_right"];
+    conmat.trials(i_tr).RECTeventpos = squeeze(conmat.mats.RECTeventpos(:,i_tr,:));
+    conmat.trials(i_tr).RECTeventpos_lab = conmat.mats.RECTeventpos_lab(:,i_tr);
     
     % event onset frames
     conmat.trials(i_tr).event_onset_frames = conmat.mats.event_onset_frames(:,i_tr);
@@ -435,7 +498,7 @@ for i_tr = 1:conmat.totaltrials
     conmat.trials(i_tr).event_onset_times = conmat.mats.event_onset_times(:,i_tr);
 end
 
-
+% tmat = conmat.trials;
 
     
 

@@ -1,4 +1,4 @@
-function [timing,key,resp] = pres_FShift_PerIrr(p, ps, key, RDK, conmat, blocknum, flag_training)
+function [timing,key,resp] = pres_FShift_StimDriven(p, ps, key, RDK, conmat, blocknum, flag_training)
 % presents experiment SSVEP_FShiftBase
 %   p               = parameters
 %   ps              = screen parameters
@@ -51,13 +51,17 @@ for i_tr = 1:numel(trialindex)
     fprintf('%1.0f',mod(i_tr,10))
     inittime=GetSecs;
     %% initialize trial structure, RDK, cross, logs
-    RDKin.trial = struct('duration',conmat.trials(trialindex(i_tr)).post_cue_times+conmat.trials(trialindex(i_tr)).pre_cue_times,...
-        'frames',conmat.trials(trialindex(i_tr)).post_cue_frames+conmat.trials(trialindex(i_tr)).pre_cue_frames,...
-        'cue',conmat.trials(trialindex(i_tr)).pre_cue_frames+1);
-    RDKin.trial.event = struct('onset',conmat.trials(trialindex(i_tr)).event_onset_frames,...
-        'direction',conmat.trials(trialindex(i_tr)).eventdirection,'RDK',conmat.trials(trialindex(i_tr)).eventRDK);
-    RDKin.RDK.RDK = RDK.RDK(conmat.trials(trialindex(i_tr)).RDK2display);
-    [colmat,dotmat,dotsize,rdkidx,frames] = RDK_init_FShift_PerIrr(RDKin.scr,RDKin.Propixx,RDKin.RDK,RDKin.trial,RDKin.crs);
+    RDKin.trial = struct('duration',conmat.trials(trialindex(i_tr)).post_change_times+conmat.trials(trialindex(i_tr)).pre_change_times,...
+        'frames',conmat.trials(trialindex(i_tr)).post_change_frames+conmat.trials(trialindex(i_tr)).pre_change_frames,...
+        'cue',conmat.trials(trialindex(i_tr)).pre_change_frames+1);
+    t.rdkevidx = conmat.trials(trialindex(i_tr)).eventstim == 1;
+    RDKin.trial.event = struct('onset',conmat.trials(trialindex(i_tr)).event_onset_frames(t.rdkevidx),...
+        'direction',conmat.trials(trialindex(i_tr)).RDKeventdirection(t.rdkevidx,:),'RDK',t.rdkevidx);
+    RDKin.RDK.RDK = RDK.RDK(1:3);
+    [colmat,dotmat,dotsize,rdkidx,frames, lummat] = RDK_init_FShift_StimDriven(RDKin.scr,RDKin.Propixx,RDKin.RDK,RDKin.trial,RDKin.crs);
+
+    % needs to alter color for central RDK
+    % ##### check
     
     % initialize fixation cross
     colmat_cr = repmat(p.crs.color' ,[1 1 size(colmat,3)]);

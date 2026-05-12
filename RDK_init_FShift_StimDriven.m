@@ -1,4 +1,4 @@
-function [colmat,dotmat,dotsize,rdkidx,frames,varargout] = RDK_init_FShift_PerIrr(scr,Propixx,RDK,trial,cross)
+function [colmat,dotmat,dotsize,rdkidx,frames,varargout] = RDK_init_FShift_StimDriven(scr,Propixx,RDK,trial,cross)
 %RDK_init initializes parameters for RDKs
 % This function initializes dot colors and dot positions for every frame.
 % The different RDKs are treated as "one big dot cloud". Dots are
@@ -18,6 +18,7 @@ function [colmat,dotmat,dotsize,rdkidx,frames,varargout] = RDK_init_FShift_PerIr
 %                   num             number of dots for each RDK
 %                   dot_size        size of dots
 %                   flicker_type    'SSVEP'; 'BRBF' SSVEP vs broad band flicker; default: SSVEP
+%                   shape           square vs ellipse
 %       RDK.event.  class           'globalmotion'; 'colorchange'
 %                   duration        duration in s
 %                   coherence       amount of dots showing coherent motion

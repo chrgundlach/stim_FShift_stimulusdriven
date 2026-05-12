@@ -462,7 +462,7 @@ randmat.experiment = rand_FShift_StimDriven(p, RDK,  0);    % randomization
 for i_bl = p.flag_block:p.stim.blocknum
     % start experiment
     [timing.experiment{i_bl},button_presses.experiment{i_bl},resp.experiment{i_bl}] = ...
-        pres_FShift_PerIrr(p, ps, key, RDK, randmat.experiment, i_bl,0);
+        pres_FShift_StimDriven(p, ps, key, RDK, randmat.experiment, i_bl,0);
     % save logfiles
     save(sprintf('%s%s',p.log.path,p.filename),'timing','button_presses','resp','randmat','p', 'RDK')
           
@@ -481,4 +481,3 @@ sca;
 
 
 end
-
