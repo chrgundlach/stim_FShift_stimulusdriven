@@ -59,8 +59,17 @@ for i_tr = 1:numel(trialindex)
         'direction',conmat.trials(trialindex(i_tr)).RDKeventdirection(t.rdkevidx,:),'RDK',t.rdkevidx);
     RDKin.RDK.RDK = RDK.RDK(1:3);
     [colmat,dotmat,dotsize,rdkidx,frames, lummat] = RDK_init_FShift_StimDriven(RDKin.scr,RDKin.Propixx,RDKin.RDK,RDKin.trial,RDKin.crs);
+    
 
+
+    % ###################
     % needs to alter color for central RDK
+    for i_time = 1:2
+    end
+
+    t.idx = find(rdkidx(:,1)==1,1,'first');
+    squeeze(colmat(:,t.idx,1:100))
+    lummat(t.idx,1:100)
     % ##### check
     
     % initialize fixation cross

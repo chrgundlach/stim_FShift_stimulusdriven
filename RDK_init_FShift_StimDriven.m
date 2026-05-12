@@ -278,6 +278,11 @@ for r = 1:length(RDK.RDK)
     dotsize = cat(1,dotsize,dotsize_r);
     lummat = cat(1,lummat, weight);
 
+    lummat2 = nan(size(rdkidx));
+    for i_rdk = 1:numel(unique(rdkidx))
+        lummat2(rdkidx(:,1)==i_rdk,:)=repmat(lummat(i_rdk,:),sum(rdkidx(:,1)==i_rdk),1);
+    end
+
     % troublehsooting:
     % plotting
 %     figure; plot(squeeze(colmat(1,:,:))')
@@ -293,13 +298,15 @@ rdkidx = rdkidx(shuffle_idx,:); %ToDo: weg?
 colmat = colmat(:,shuffle_idx,:);
 dotmat = dotmat(:,shuffle_idx,:);
 dotsize = dotsize(shuffle_idx,:);
+lummat2 = lummat2(shuffle_idx,:);
 
 colmat = reshape(colmat,[size(colmat,1), size(rdkidx,1)*Propixx, frames.flips]);
 dotmat = reshape(dotmat,[2, size(rdkidx,1)*Propixx, frames.flips]);
 rdkidx = reshape(rdkidx,[size(rdkidx,1)*Propixx, frames.flips]);
 dotsize = reshape(dotsize,[size(dotsize,1)*Propixx, frames.flips]);
+lummat2 = reshape(lummat2,[size(lummat2,1)*Propixx, frames.flips]);
 
-varargout{1} = lummat;
+varargout{1} = lummat2;
 end
 
 %% SUBFUNCTIONS

@@ -132,26 +132,23 @@ for i_task = 1:2 % RDK vs square
 end
 % [sum(conmat.mats.eventdiscrtype==1 | conmat.mats.eventdiscrtype==2,"all") sum(conmat.mats.eventdiscrtype==3,"all")]
 
-% randomize RDK event directions (according to RDK.event.direction) [evnnum x trials x direction]
-conmat.mats.RDKeventdirection = nan(max(p.stim.eventnum),conmat.totaltrials,4);
+% randomize RDK event directions (according to RDK.event.direction) [evnnum x trials]
+conmat.mats.RDKeventdirection = nan(max(p.stim.eventnum),conmat.totaltrials);
 conmat.mats.RDKeventdirection_lab = repmat("",max(p.stim.eventnum),conmat.totaltrials);
 t.dirsall = cell2mat(p.stim.event.RDK_movdir);
 t.dirsall_lab = ["up","down","left","right"];
 for i_class = 1:2 % for target event classes
     t.idx = conmat.mats.eventdiscrtype == i_class & conmat.mats.task == 1;
     t.randidx = randsample(size(p.stim.event.RDK_movdir{i_class},1),sum(t.idx,"all"),true); % randomly select possible target from class
-    t.mat = p.stim.event.RDK_movdir{i_class}(t.randidx,:);
-    t.idx2 = repmat(t.idx,[1,1,4]);
-    conmat.mats.RDKeventdirection(t.idx2) = t.mat;
-    % extract labels
     [~, t.ridx] = ismember(p.stim.event.RDK_movdir{i_class}, t.dirsall, 'rows');
-    conmat.mats.RDKeventdirection_lab(t.idx) = t.dirsall_lab(t.ridx(t.randidx)); 
+    conmat.mats.RDKeventdirection(t.idx) = t.ridx(t.randidx);
+    % extract labels
+    conmat.mats.RDKeventdirection_lab(t.idx) = t.dirsall_lab(conmat.mats.RDKeventdirection(t.idx));
 end
 % eventdirection for distractor events (task is on rectangle)
 t.idx = conmat.mats.eventdiscrtype == 3 & conmat.mats.task == 2;
 t.randidx = randsample(size(cell2mat(p.stim.event.RDK_movdir),1),sum(t.idx,"all"),true);
-t.idx2 = repmat(t.idx,[1,1,4]);
-conmat.mats.RDKeventdirection(t.idx2) = t.dirsall(t.randidx,:);
+conmat.mats.RDKeventdirection(t.idx) = t.randidx;
 % label the direction
 conmat.mats.RDKeventdirection_lab(t.idx) = t.dirsall_lab(t.randidx);
 % troubleshooting
@@ -414,7 +411,7 @@ conmat.mats.eventnum = conmat.mats.eventnum(:,t.tidx);
 conmat.mats.eventtype = conmat.mats.eventtype(:,t.tidx);
 conmat.mats.eventstim = conmat.mats.eventstim(:,t.tidx);
 conmat.mats.eventdiscrtype = conmat.mats.eventdiscrtype(:,t.tidx);
-conmat.mats.RDKeventdirection = conmat.mats.RDKeventdirection(:,t.tidx,:);
+conmat.mats.RDKeventdirection = conmat.mats.RDKeventdirection(:,t.tidx);
 conmat.mats.RDKeventdirection_lab = conmat.mats.RDKeventdirection_lab(:,t.tidx);
 conmat.mats.RECTeventpos = conmat.mats.RECTeventpos(:,t.tidx,:);
 conmat.mats.RECTeventpos_lab = conmat.mats.RECTeventpos_lab(:,t.tidx);
@@ -484,7 +481,7 @@ for i_tr = 1:conmat.totaltrials
     conmat.trials(i_tr).eventdiscrtype = conmat.mats.eventdiscrtype(:,i_tr);
     
     % RDK event directions (according to RDK.event.direction) ["up","down","left","right"];
-    conmat.trials(i_tr).RDKeventdirection = squeeze(conmat.mats.RDKeventdirection(:,i_tr,:));
+    conmat.trials(i_tr).RDKeventdirection = squeeze(conmat.mats.RDKeventdirection(:,i_tr));
     conmat.trials(i_tr).RDKeventdirection_lab = conmat.mats.RDKeventdirection_lab(:,i_tr);
     
     % event changes of rectangle events (according to p.stim.event.rect_mod) ["top","right","bottom","left","top_bottom","left_right"];
