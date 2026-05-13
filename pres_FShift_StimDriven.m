@@ -54,34 +54,80 @@ for i_tr = 1:numel(trialindex)
     RDKin.trial = struct('duration',conmat.trials(trialindex(i_tr)).post_change_times+conmat.trials(trialindex(i_tr)).pre_change_times,...
         'frames',conmat.trials(trialindex(i_tr)).post_change_frames+conmat.trials(trialindex(i_tr)).pre_change_frames,...
         'cue',conmat.trials(trialindex(i_tr)).pre_change_frames+1);
+    % check for RDK events?
     t.rdkevidx = conmat.trials(trialindex(i_tr)).eventstim == 1;
-    RDKin.trial.event = struct('onset',conmat.trials(trialindex(i_tr)).event_onset_frames(t.rdkevidx),...
-        'direction',conmat.trials(trialindex(i_tr)).RDKeventdirection(t.rdkevidx,:),'RDK',t.rdkevidx);
+    t.eventframes = conmat.trials(trialindex(i_tr)).event_onset_frames;
+    t.eventframes(~t.rdkevidx)=nan;
+    RDKin.trial.event = struct('onset',t.eventframes,...
+        'direction',conmat.trials(trialindex(i_tr)).RDKeventdirection,'RDK',t.rdkevidx);
     RDKin.RDK.RDK = RDK.RDK(1:3);
     [colmat,dotmat,dotsize,rdkidx,frames, lummat] = RDK_init_FShift_StimDriven(RDKin.scr,RDKin.Propixx,RDKin.RDK,RDKin.trial,RDKin.crs);
     
-
-
-    % ###################
-    % needs to alter color for central RDK
-    for i_time = 1:2
-    end
-
-    t.idx = find(rdkidx(:,1)==1,1,'first');
-    squeeze(colmat(:,t.idx,1:100))
-    lummat(t.idx,1:100)
-    % ##### check
-    
     % initialize fixation cross
     colmat_cr = repmat(p.crs.color' ,[1 1 size(colmat,3)]);
-    % from cue onwards: color of to be attended RDK
-    colmat_cr(:,:,(conmat.trials(trialindex(i_tr)).pre_cue_frames/p.scr_imgmultipl)+1:end)=...
-        repmat(RDK.RDK(conmat.trials(trialindex(i_tr)).cue).col(1,:)',[1,1,conmat.trials(trialindex(i_tr)).post_cue_frames/p.scr_imgmultipl]);
     
     % preallocate timing
     timing(i_tr) = struct('VBLTimestamp',NaN(1,frames.flips),'StimulusOnsetTime',NaN(1,frames.flips),...
         'FlipTimestamp',NaN(1,frames.flips),'Missed',NaN(1,frames.flips));
     
+    %% preallocate rectange information for standard rectangles with color and potential events
+    rect.baseRect = [0 0 RDK.RDK(1).size];
+    rect.baseRect_ct = CenterRectOnPointd(rect.baseRect,ps.center(1),ps.center(2));
+    rect.posmat = repmat(rect.baseRect_ct,RDKin.trial.frames,1);
+    % now adjust positions for events
+    t.evidx = find(conmat.trials(trialindex(i_tr)).eventstim==2); % find rectangle events
+    for i_ev = 1:numel(t.evidx)
+        t.modidx = conmat.trials(trialindex(i_tr)).RECTeventpos(t.evidx(i_ev),:); % changes in dimensions [top right bottom left]
+        
+        % testing
+        % t.modidx = [1 0 0 0]; % top
+        % t.modidx = [0 1 0 0]; % right
+        % t.modidx = [0 0 1 0]; % bottom
+        % t.modidx = [0 0 0 1]; % left
+        % t.modidx = [1 0 1 0]; % top  + bottom
+        % t.modidx = [0 1 0 0]; % left + right
+        
+        % amount of change
+        t.modchange = [0 0 0 0] + ...
+            [t.modidx([4 1 2 3]) .* ... translate changes in dimensions [top right bottom left] to rect.baseRect_ct dimensions
+            [1 1 -1 -1] .* ... % are values to be added or subtracted?
+            1./([sum(t.modidx([4 2])) sum(t.modidx([1 3])) sum(t.modidx([4 2])) sum(t.modidx([1 3]))]) .*...  % are values to be distributed across one or two dimensions?
+            p.stim.event.rect_modsize];
+        t.modchange(isnan(t.modchange)) = 0;
+
+        % start and duration
+        t.moddur = [1 1].* conmat.trials(trialindex(i_tr)).event_onset_frames(t.evidx(i_ev)) + ...
+            [0 p.scr_refrate*p.stim.event.rect_moddur-1];
+
+        % write changes into rect.posmat
+        rect.posmat(t.moddur(1):t.moddur(2),:) = repmat(t.modchange,diff(t.moddur)+1,1);
+    end
+
+    % now shift them into the quadrants
+    % add QUAD4X shift to positions
+    rect.posmat_sh = rect.posmat;
+    for i_pos=1:p.scr_imgmultipl
+        shift_idx = i_pos:p.scr_imgmultipl:frames.pertrial;
+        rect.posmat_sh(shift_idx,:) = ...
+            [rect.posmat_sh(shift_idx,1)+ps.shift(i_pos,1), ...
+            rect.posmat_sh(shift_idx,2)+ps.shift(i_pos,2), ...
+            rect.posmat_sh(shift_idx,3)+ps.shift(i_pos,1),...
+            rect.posmat_sh(shift_idx,4)+ps.shift(i_pos,2)];
+    end
+    rect.posmat_sh = reshape(rect.posmat_sh',[4,p.scr_imgmultipl, frames.flips]);
+    
+    % create color for rect
+    rect.colmat = repmat(p.stim.colors{conmat.trials(trialindex(i_tr)).central_color(1)}(1,:), size(rect.posmat,1),1);
+    rect.colmat(conmat.trials(trialindex(i_tr)).pre_change_frames+1:end,:) = ...
+        repmat(p.stim.colors{conmat.trials(trialindex(i_tr)).central_color(2)}(1,:), conmat.trials(trialindex(i_tr)).post_change_frames,1);
+    rect.colmat_sh = reshape(rect.colmat',[4,p.scr_imgmultipl, frames.flips]);
+
+    % testing drawing
+    % Screen('FillRect', ps.window, [1 0 0], rect.baseRect_ct);
+    % Screen('FillRect', ps.window, [0 1 0], rect.baseRect_ct+t.modchange);
+    % Screen('FillRect', ps.window, rect.colmat_sh(:,:,1), rect.posmat_sh(:,:,1));
+    % Screen('Flip', ps.window, 0);
+
     %% set up responses
     %setup key presses
     key.presses{i_tr}=nan(size(colmat,3),sum(key.keymap));
@@ -90,24 +136,25 @@ for i_tr = 1:numel(trialindex)
     resp(i_tr).trialnumber              = trialindex(i_tr);
     resp(i_tr).blocknumber              = conmat.trials(trialindex(i_tr)).blocknum;
     resp(i_tr).condition                = conmat.trials(trialindex(i_tr)).condition;
-    resp(i_tr).RDK2display              = conmat.trials(trialindex(i_tr)).RDK2display;
-    resp(i_tr).cue                      = conmat.trials(trialindex(i_tr)).cue; % attended RDK
-    resp(i_tr).color_attended           = RDK.RDK(resp(i_tr).cue).col(1,:);
-    resp(i_tr).freq_attended            = RDK.RDK(resp(i_tr).cue).freq;
-    resp(i_tr).cue_onset_fr             = conmat.trials(trialindex(i_tr)).pre_cue_frames + 1;
-    resp(i_tr).cue_onset_t_est          = (conmat.trials(trialindex(i_tr)).pre_cue_frames + 1)/p.scr_refrate*1000;
-    resp(i_tr).cue_onset_t_meas         = nan; % measured onset time for cue
-    resp(i_tr).pre_cue_frames           = conmat.trials(trialindex(i_tr)).pre_cue_frames;
-    resp(i_tr).pre_cue_times            = conmat.trials(trialindex(i_tr)).pre_cue_times;
-    resp(i_tr).post_cue_times           = conmat.trials(trialindex(i_tr)).post_cue_frames;
-    resp(i_tr).post_cue_frames          = conmat.trials(trialindex(i_tr)).post_cue_times;
+    resp(i_tr).task                     = conmat.trials(trialindex(i_tr)).task;
+    resp(i_tr).central_color            = conmat.trials(trialindex(i_tr)).central_color;
+    resp(i_tr).central_color_label      = conmat.trials(trialindex(i_tr)).central_color_label; % t1 t2
+    resp(i_tr).peri_color               = conmat.trials(trialindex(i_tr)).peri_color;
+    resp(i_tr).peri_color_label         = conmat.trials(trialindex(i_tr)).peri_color_label; % left right
+    resp(i_tr).peri_attention_collapsed = conmat.trials(trialindex(i_tr)).peri_attention_collapsed;
+    resp(i_tr).peri_attention           = conmat.trials(trialindex(i_tr)).peri_attention; % [left right; left right] [t1 t1; t2 t2]
+    resp(i_tr).pre_change_frames        = conmat.trials(trialindex(i_tr)).pre_change_frames;
+    resp(i_tr).pre_change_times         = conmat.trials(trialindex(i_tr)).pre_change_times;
+    resp(i_tr).post_change_frames       = conmat.trials(trialindex(i_tr)).post_change_frames;
+    resp(i_tr).post_change_times        = conmat.trials(trialindex(i_tr)).post_change_times;
     resp(i_tr).eventnum                 = conmat.trials(trialindex(i_tr)).eventnum;
     resp(i_tr).eventtype                = conmat.trials(trialindex(i_tr)).eventtype; % 1 = target; 2 = distractor
-    resp(i_tr).eventRDK                 = conmat.trials(trialindex(i_tr)).eventRDK;
-    resp(i_tr).eventcolor               = cell2mat(cellfun(@(x) x(1,:),{RDK.RDK(resp(i_tr).eventRDK(resp(i_tr).eventRDK>0)).col},...
-        'UniformOutput',false)');
-    resp(i_tr).eventfreq                = [RDK.RDK(resp(i_tr).eventRDK(resp(i_tr).eventRDK>0)).freq]';
-    resp(i_tr).eventdirection           = conmat.trials(trialindex(i_tr)).eventdirection;
+    resp(i_tr).eventstim                = conmat.trials(trialindex(i_tr)).eventstim; % 1 = RDK; 2 = rectangle
+    resp(i_tr).eventdiscrtype           = conmat.trials(trialindex(i_tr)).eventdiscrtype; % 1 = class1; 2 = class2
+    resp(i_tr).RDKeventdirection        = conmat.trials(trialindex(i_tr)).RDKeventdirection; 
+    resp(i_tr).RDKeventdirection_lab    = conmat.trials(trialindex(i_tr)).RDKeventdirection_lab; 
+    resp(i_tr).RECTeventpos             = conmat.trials(trialindex(i_tr)).RECTeventpos; 
+    resp(i_tr).RECTeventpos_lab         = conmat.trials(trialindex(i_tr)).RECTeventpos_lab; 
     resp(i_tr).event_onset_frames       = conmat.trials(trialindex(i_tr)).event_onset_frames;
     resp(i_tr).event_onset_times        = conmat.trials(trialindex(i_tr)).event_onset_times;
     
@@ -169,6 +216,8 @@ for i_tr = 1:numel(trialindex)
     %% loop across frames
     for i_fl = 1:frames.flips
         %% Drawing
+        % Rectangle
+        Screen('FillRect', ps.window, rect.colmat_sh(:,:,i_fl), rect.posmat_sh(:,:,i_fl));
         % RDK
         Screen('DrawDots', ps.window, dotmat(:,:,i_fl), dotsize(:,i_fl), colmat(:,:,i_fl), ps.center, 0, 0);
         % fixation cross

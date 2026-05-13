@@ -29,21 +29,23 @@ for i_col = 1:numel(p.stim.color_names)
     t.colnames(i_col)= convertCharsToStrings(p.stim.color_names{i_col});
 end
 t.cols = repmat(arrayfun(@(x) t.colnames(x),p.stim.center_col),numel(p.stim.task),1);
-conmat.mats.central_color = t.cols(conmat.mats.condition,:)';
+conmat.mats.central_color_label = t.cols(conmat.mats.condition,:)';
+conmat.mats.central_color = arrayfun(@(x) find(strcmp(t.colnames,x)),conmat.mats.central_color_label);
 
 % task 1 = RDK task; 2 = square task
 t.idx = discretize(p.stim.condition,2,'IncludedEdge','right');
 conmat.mats.task = arrayfun(@(x) t.idx(p.stim.condition==x),conmat.mats.condition);
 
 % colors in periphery left and right
-conmat.mats.peri_color = repmat(t.colnames(p.stim.RDKperi_col)',1,conmat.totaltrials);
+conmat.mats.peri_color_label = repmat(t.colnames(p.stim.RDKperi_col)',1,conmat.totaltrials);
+conmat.mats.peri_color = arrayfun(@(x) find(strcmp(t.colnames,x)),conmat.mats.peri_color_label);
 
 % attentin in periphery [left right]COLUMNS x [time1 time2]ROWS
 conmat.mats.peri_attention = {};
 t.labels = ["attended","unattended"];
 conmat.mats.peri_attention_collapsed = repmat(t.labels(2),2,conmat.totaltrials);
 for i_tr = 1:conmat.totaltrials
-    t.idx = cell2mat(arrayfun(@(x) strcmp(conmat.mats.central_color(:,i_tr),x),conmat.mats.peri_color(:,i_tr),'UniformOutput',false)')';
+    t.idx = cell2mat(arrayfun(@(x) strcmp(conmat.mats.central_color_label(:,i_tr),x),conmat.mats.peri_color_label(:,i_tr),'UniformOutput',false)')';
     conmat.mats.peri_attention{i_tr}=repmat(t.labels(2),size(t.idx));
     conmat.mats.peri_attention{i_tr}(t.idx)=t.labels(1);
     % collapse across positions
@@ -403,7 +405,9 @@ end
 conmat.mats.condition = conmat.mats.condition(:,t.tidx);
 conmat.mats.task = conmat.mats.task(:,t.tidx);
 conmat.mats.central_color = conmat.mats.central_color(:,t.tidx);
+conmat.mats.central_color_label = conmat.mats.central_color_label(:,t.tidx);
 conmat.mats.peri_color = conmat.mats.peri_color(:,t.tidx);
+conmat.mats.peri_color_label = conmat.mats.peri_color_label(:,t.tidx);
 conmat.mats.peri_attention = conmat.mats.peri_attention(t.tidx);
 conmat.mats.peri_attention_collapsed = conmat.mats.peri_attention_collapsed(:,t.tidx);
 
@@ -445,15 +449,17 @@ for i_tr = 1:conmat.totaltrials
 
     % central color [time1 time2]
     conmat.trials(i_tr).central_color = conmat.mats.central_color(:, i_tr);
+    conmat.trials(i_tr).central_color_label = conmat.mats.central_color_label(:, i_tr);
 
     % peri color [left right]
     conmat.trials(i_tr).peri_color = conmat.mats.peri_color(:, i_tr);
+    conmat.trials(i_tr).peri_color_label = conmat.mats.peri_color_label(:, i_tr);
 
     % peri attention [left right] columns; [time1 time2] rows
     conmat.trials(i_tr).peri_attention = conmat.mats.peri_attention{i_tr};
     
     % peri attention collapsed across positions columns; [time1 time2] rows
-    conmat.trials(i_tr).peri_attention_collapsed = conmat.mats.peri_attention_collapsed{i_tr};
+    conmat.trials(i_tr).peri_attention_collapsed = conmat.mats.peri_attention_collapsed(:,i_tr);
     
     % pre change frames
     conmat.trials(i_tr).pre_change_frames = conmat.mats.pre_change_frames(i_tr);
