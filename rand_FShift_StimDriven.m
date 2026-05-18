@@ -188,8 +188,17 @@ for i_class = 1:2 % for target event classes
     [~, t.ridx] = ismember(p.stim.event.rect_mod{i_class}, t.posall, 'rows');
     conmat.mats.RECTeventpos_lab(t.idx) = t.posall_lab(t.ridx(t.randidx)); 
 end
-% troubleshooting
-% tmat = sum(conmat.mats.RECTeventpos,3);
+% eventpositions for distractor events (task is on rectangle)
+for i_class = 1:2 % for target event classes
+    t.idx = conmat.mats.eventdiscrtype == i_class & conmat.mats.task == 1 & conmat.mats.eventstim == 2;
+    t.randidx = randsample(size(p.stim.event.rect_mod{i_class},1),sum(t.idx,"all"),true); % randomly select possible target from class
+    t.mat = p.stim.event.rect_mod{i_class}(t.randidx,:);
+    t.idx2 = repmat(t.idx,[1,1,4]);
+    conmat.mats.RECTeventpos(t.idx2) = t.mat;
+    % extract labels
+    [~, t.ridx] = ismember(p.stim.event.rect_mod{i_class}, t.posall, 'rows');
+    conmat.mats.RECTeventpos_lab(t.idx) = t.posall_lab(t.ridx(t.randidx));
+end
 
 
 % randomize pre-color change times (and get respective post-color frames)

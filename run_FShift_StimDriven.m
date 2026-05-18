@@ -81,7 +81,7 @@ p.stim.ITI              = [1 1];            % ITI range in seconds
 % event parameter for rectangle modulations
 p.stim.event.rect_mod       = {[1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
                                 [1 0 1 0; 0 1 0 1]};   % which synchronous changes [top right bottom left] are to be discriminated {class 1; class 2}
-p.stim.event.rect_modsize   = [50];                  % size of rectangle modulations in pixels
+p.stim.event.rect_modsize   = [20];                  % size of rectangle modulations in pixels
 p.stim.event.rect_moddur    = p.stim.event.length;   % duration of event length
 
 % event parameter for RDK modulations
@@ -94,7 +94,7 @@ RDK.RDK(1).centershift  = [0 0];                        % position of RDK center
 RDK.RDK(1).col          = [0.3 0.3 0.3 1; p.scr_color(1:3) 0];% "on" and "off" color
 RDK.RDK(1).freq         = 0;                            % flicker frequency, frequency of a full "on"-"off"-cycle
 RDK.RDK(1).mov_freq     = 120;                          % Defines how frequently the dot position is updated; 0 will adjust the update-frequency to your flicker frequency (i.e. dot position will be updated with every "on"-and every "off"-frame); 120 will update the position for every frame for 120Hz or for every 1. quadrant for 480Hz 
-RDK.RDK(1).num          = 85;                           % number of dots % 85
+RDK.RDK(1).num          = 120;                           % number of dots % 85
 RDK.RDK(1).mov_speed    = 1;                            % movement speed in pixel
 RDK.RDK(1).mov_dir      = [0 1; 0 -1; -1 0; 1 0];       % movement direction  [0 1; 0 -1; -1 0; 1 0] = up, down, left, right
 RDK.RDK(1).dot_size     = 10;                           % size of dots
@@ -145,7 +145,7 @@ p.trig.event_type       = [211 212 213 214; 221 222 223 224];  % target [RDKcl1 
 % {111 121 131 141 151 161} [l_tr1 r_tr2,  l_tr1 r_tr0; l_tr2 r_tr1, l_tr2 r_tr0; l_tr0 r_tr1, l_tr0 r_tr2]; with event(s)
 
 % logfiles
-p.log.path              = '/home/stimulationspc/matlab/User/christopher/stim_ssvep_fshift_stimdriven/logfiles/';
+p.log.path              = '/home/stimulation120/matlab/user/christopher/stim_FShift_stimulusdriven/logfiles/';
 p.log.exp_name          = 'SSVEP_FShift_StimDriven';
 p.log.add               = '_a';
 
@@ -196,7 +196,7 @@ end
 
 %% keyboard and ports setup ???
 KbName('UnifyKeyNames')
-Buttons = [KbName('ESCAPE') KbName('Q') KbName('SPACE') KbName('j') KbName('n') KbName('s') KbName('l') KbName('1!') KbName('2@')];
+Buttons = [KbName('ESCAPE') KbName('Q') KbName('SPACE') KbName('j') KbName('n') KbName('s') KbName('l') KbName('1!') KbName('2@') KbName('3#')];
 RestrictKeysForKbCheck(Buttons);
 key.keymap=false(1,256);
 key.keymap(Buttons) = true;
@@ -222,6 +222,7 @@ p.stim.colors = p.stim.colors(t.idx);
 p.stim.colors_max = p.stim.colors;
 p.stim.color_names = p.stim.color_names(t.idx);
 p.isol.init_cols = p.isol.init_cols(t.idx,:);
+p.isol.override = p.isol.override(t.idx,:);
 
 % override with isol colors?
 for i_col = 1:numel(p.stim.colors)
@@ -276,12 +277,14 @@ if p.flag_training
         pres_feedback(resp.training{i_bl},p,ps, key,RDK)
                
         % loop for training to be repeated
-        fprintf(1,'\nTraing wiederholen? (j/n)')
+        fprintf(1,'\nRDK Training starten mit 1; Rectangle Training starten mit 2; Training abbrechen mit n')
         inp.prompt_check = 0;
         while inp.prompt_check == 0             % loop to check for correct input
             [key.keyisdown,key.secs,key.keycode] = KbCheck; 
-            if key.keycode(key.YES)==1
-                i_bl = i_bl + 1; flag_trainend = 0; inp.prompt_check = 1;
+            if key.keycode(Buttons(8))==1
+                flag_trainend = 0; inp.prompt_check = 1; flag_traintype = 1; i_bl = i_bl + 1;
+            elseif key.keycode(Buttons(9))==1
+                flag_trainend = 0; inp.prompt_check = 1; flag_traintype = 2; i_bl = i_bl + 1;
             elseif key.keycode(key.NO)==1
                 flag_trainend = 1; inp.prompt_check = 1;
             end
@@ -301,14 +304,14 @@ if flag_isolum == 1
 %     Datapixx('SetPropixxDlpSequenceProgram', 0);
 %     Datapixx('RegWrRd');
      
-    
+    t.cols = cell2mat(cellfun(@(x) x(1,1:3),p.stim.colors_max,'UniformOutput',false));
     
     % start isoluminance script only RGB output (no alpha)
     [Col2Use] = PRPX_IsolCol_480_adj(...
-        [p.isol.bckgr(1:3); p.isol.init_cols(:,1:3)],...
+        [p.isol.bckgr(1:3); t.cols],...
         p.isol.TrlAdj,...
         p.isol.MaxStd,...
-        cellfun(@(x) x(1), {RDK.RDK.centershift})',...
+        cellfun(@(x) x(1), {RDK.RDK(1).centershift})',...
         RDK.RDK(1).size);
     
     for i_RDK = 1:numel(RDK.RDK)
@@ -321,7 +324,7 @@ if flag_isolum == 1
     
     fprintf('\nadjusted colors:\n')
     for i_col = 1:size(p.isol.coladj,1)
-        fprintf('RDK%1.0f [%1.4f %1.4f %1.4f %1.4f]\n', i_col,p.isol.coladj(i_col,:))
+        fprintf('color %1.0f [%1.4f %1.4f %1.4f %1.4f]\n', i_col,p.isol.coladj(i_col,:))
     end
     
     Screen('CloseAll')
@@ -334,7 +337,7 @@ else
     % specify options
     % option1: use default values
     isol.opt(1).available = true;
-    t.cols = cell2mat({RDK.RDK(:).col}');
+    t.cols = cell2mat(p.stim.colors);
     isol.opt(1).colors = t.cols(1:2:end,:);
     isol.opt(1).text = sprintf('default: %s',sprintf('[%1.2f %1.2f %1.2f] ',isol.opt(1).colors(:,1:3)'));
     % option2: use isoluminance values of previously saved dataset
@@ -365,7 +368,7 @@ else
         isol.opt(3).text = [];
     end
     % check for buttons
-    IsoButtons = Buttons(6:8);
+    IsoButtons = Buttons(8:10);
     isol.prompt.idx = find([isol.opt(:).available]);
     t.prompt = [];
     for i_prompt = 1:numel(isol.prompt.idx)
@@ -384,8 +387,8 @@ else
     end
     Col2Use = isol.opt(isol.prompt.idx(key.keycode(IsoButtons(1:numel(isol.prompt.idx)))==1)).colors;
     % use selected colors
-    for i_RDK = 1:numel(RDK.RDK)
-        RDK.RDK(i_RDK).col(1,:) = Col2Use(i_RDK,:);
+    for i_RDK = 1:numel(RDK.RDK)-1
+        RDK.RDK(i_RDK+1).col(1,:) = Col2Use(i_RDK,:);
     end
     % index function execution
     switch isol.prompt.idx(key.keycode(IsoButtons(1:numel(isol.prompt.idx)))==1)
@@ -401,7 +404,7 @@ else
     
     fprintf('\nselected colors:\n')
     for i_col = 1:size(p.isol.coladj,1)
-        fprintf('RDK%1.0f [%1.4f %1.4f %1.4f %1.4f]\n', i_col,p.isol.coladj(i_col,:))
+        fprintf('color%1.0f [%1.4f %1.4f %1.4f %1.4f]\n', i_col,p.isol.coladj(i_col,:))
     end
 end
 
@@ -436,42 +439,44 @@ key.keymap_ind = find(key.keymap);
 
 %% do training again?
 % loop for training to be repeated
-fprintf(1,'\nTraing starten (j/n)')
+fprintf(1,'\nRDK Training starten mit 1; Rectangle Training starten mit 2')
 inp.prompt_check = 0;
 while inp.prompt_check == 0             % loop to check for correct input
     [key.keyisdown,key.secs,key.keycode] = KbCheck;
-    if key.keycode(key.YES)==1
-        flag_trainend = 0; inp.prompt_check = 1;
-    elseif key.keycode(key.NO)==1
-        flag_trainend = 1; inp.prompt_check = 1;
+    if key.keycode(Buttons(8))==1
+        flag_trainend = 0; inp.prompt_check = 1; flag_traintype = 1;
+    elseif key.keycode(Buttons(9))==1
+        flag_trainend = 0; inp.prompt_check = 1; flag_traintype = 2;
     end
     Screen('Flip', ps.window, 0);
 end
 
-if ~exist('i_bl'); i_bl = 1; end
+if ~exist('i_bl'); i_bl = 1; else i_bl = i_bl+1; end
 while flag_trainend == 0 % do training until ended
     %rand('state',p.sub*i_bl) % determine randstate
     rng(p.sub*i_bl,'v4')
-    randmat.training{i_bl} = rand_FShift_PerIrr(p, RDK,  1);
+    randmat.training{i_bl} = rand_FShift_StimDriven(p, RDK,  1);
     pres_instruction(p,ps,RDK,i_bl,randmat.training{i_bl},1,key,randmat.training{i_bl}.trials(1).task); % Instruktion fürs Training
     [timing.training{i_bl},button_presses.training{i_bl},resp.training{i_bl}] = ...
-        pres_FShift_PerIrr(p, ps, key, RDK, randmat.training{i_bl}, i_bl,1);
+        pres_FShift_StimDriven(p, ps, key, RDK, randmat.training{i_bl}, i_bl,1);
     save(sprintf('%s%s',p.log.path,p.filename),'timing','button_presses','resp','randmat','p', 'RDK')
     pres_feedback(resp.training{i_bl},p,ps, key,RDK)
     
     % loop for training to be repeated
-    fprintf(1,'\nTraing wiederholen? (j/n)')
+    fprintf(1,'\nRDK Training starten mit 1; Rectangle Training starten mit 2; Training abbrechen mit n')
     inp.prompt_check = 0;
     while inp.prompt_check == 0             % loop to check for correct input
         [key.keyisdown,key.secs,key.keycode] = KbCheck;
-        if key.keycode(key.YES)==1
-            i_bl = i_bl + 1; flag_trainend = 0; inp.prompt_check = 1;
+        if key.keycode(Buttons(8))==1
+            flag_trainend = 0; inp.prompt_check = 1; flag_traintype = 1; i_bl = i_bl + 1;
+        elseif key.keycode(Buttons(9))==1
+            flag_trainend = 0; inp.prompt_check = 1; flag_traintype = 2; i_bl = i_bl + 1;
         elseif key.keycode(key.NO)==1
             flag_trainend = 1; inp.prompt_check = 1;
         end
         Screen('Flip', ps.window, 0);
     end
-    
+
 end
 
 

@@ -72,7 +72,7 @@ for i_tr = 1:numel(trialindex)
         'FlipTimestamp',NaN(1,frames.flips),'Missed',NaN(1,frames.flips));
     
     %% preallocate rectange information for standard rectangles with color and potential events
-    rect.baseRect = [0 0 RDK.RDK(1).size];
+    rect.baseRect = [0 0 RDK.RDK(1).size] + [0 0 2*p.stim.event.rect_modsize 2*p.stim.event.rect_modsize];
     rect.baseRect_ct = CenterRectOnPointd(rect.baseRect,ps.center(1),ps.center(2));
     rect.posmat = repmat(rect.baseRect_ct,RDKin.trial.frames,1);
     % now adjust positions for events
@@ -303,14 +303,21 @@ for i_tr = 1:numel(trialindex)
     resp(i_tr).event_response_RT = []; %reaction time or nan
     % all relevant presses
     
+    t.presses = cat(1, resp(i_tr).button_presses_t(:,key.keymap_ind==key.class1), ...
+        resp(i_tr).button_presses_t(:,key.keymap_ind==key.class2));
+    t.presses_type = cat(1,ones(numel(resp(i_tr).button_presses_t(:,key.keymap_ind==key.class1)),1), ...
+        ones(numel(resp(i_tr).button_presses_t(:,key.keymap_ind==key.class2)),1)+1);
+
+    % get rid of nans
+    t.presses_type(isnan(t.presses)) = [];
+    t.presses(isnan(t.presses)) = [];
     
     % #######
-    t.presses = 1;
-    t.presses{1} = resp(i_tr).button_presses_t(:,key.keymap_ind==key.class1);
-    t.presses{2} = resp(i_tr).button_presses_t(:,key.keymap_ind==key.class2);
-    % first define response windows
+    
+    % first define response windows and class of event
     if any(~isnan(resp(i_tr).eventtype))
         t.respwin = (resp(i_tr).event_onset_times(~isnan(resp(i_tr).eventtype))+(p.targ_respwin/1000))*1000;
+        t.respclass = resp(i_tr).eventdiscrtype(~isnan(resp(i_tr).eventtype));
     end
     % loop across button presses
     for i_press = 1:numel(t.presses)
@@ -322,8 +329,10 @@ for i_tr = 1:numel(trialindex)
                 % no reaction time
                 resp(i_tr).button_presses_RT(i_press) = nan;
             else
-                if resp(i_tr).eventtype(t.idx)== 1
+                if resp(i_tr).eventtype(t.idx)== 1 & resp(i_tr).eventdiscrtype(t.idx) == t.presses_type(i_press)
                     resp(i_tr).button_presses_type{i_press} = 'hit';
+                elseif resp(i_tr).eventtype(t.idx)== 1 & resp(i_tr).eventdiscrtype(t.idx) ~= t.presses_type(i_press)
+                    resp(i_tr).button_presses_type{i_press} = 'error';
                 else
                     resp(i_tr).button_presses_type{i_press} = 'FA_proper';
                 end

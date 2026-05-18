@@ -84,7 +84,7 @@ if IsLinux
     catch me
         disp(me)
     end
-    try ppdev_mex('Open', 1); % open triggerport
+    try ppdev_mex('Open', 2);  % open triggerport %%% new setup: changed from 1 to 2, to use old setup change back to 1
     catch me
         disp(me)
     end
@@ -94,7 +94,9 @@ if IsLinux
         % ask for keyboard default: PsychHID('devices',-1), returns default
         % response device index that changes after every system reboot
         % chicony elite == the EEG chambers default keyboard
-        RespDev = GetKeyboardIndices('Chicony HP Elite USB Keyboard',[],3); % either enter 'product' (name) | 'serialNumber' | locationID (did not changed after system restart (probably as long as usb plug won't change))
+        % RespDev = GetKeyboardIndices('Chicony HP Elite USB Keyboard',[],3); % either enter 'product' (name) | 'serialNumber' | locationID (did not changed after system restart (probably as long as usb plug won't change))
+        RespDev = GetKeyboardIndices('CHERRY CHERRY Keyboard',[],3); % either enter 'product' (name) | 'serialNumber' | locationID (did not changed after system restart (probably as long as usb plug won't change))
+        RespDev = RespDev(1);
     catch me
         disp(me)
         RespDev = -1;
@@ -116,7 +118,8 @@ screensize=Screen('Rect', window);
 % Get the centre coordinate of the window
 [xCenter, yCenter] = RectCenter(screensize);
 % clamping color range to 1 also has good effects on graphic card communication...sometimes
-Screen('ColorRange', window,1); 
+% Screen('ColorRange', window,1); 
+Screen('ColorRange', window,1,[],1);
 % set blending modes
 Screen('BlendFunction', window, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 % Make sure the GLSL shading language is supported:
