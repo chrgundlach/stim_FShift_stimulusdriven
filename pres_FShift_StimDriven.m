@@ -302,6 +302,9 @@ for i_tr = 1:numel(trialindex)
     resp(i_tr).event_response_type = {}; %{'hit','miss','CR','FA_proper'}
     resp(i_tr).event_response_RT = []; %reaction time or nan
     % all relevant presses
+    
+    
+    % #######
     t.presses = 1;
     t.presses{1} = resp(i_tr).button_presses_t(:,key.keymap_ind==key.class1);
     t.presses{2} = resp(i_tr).button_presses_t(:,key.keymap_ind==key.class2);
