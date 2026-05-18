@@ -268,6 +268,8 @@ if p.flag_training
         %rand('state',p.sub*i_bl) % determine randstate
         rng(p.sub*i_bl,'v4')
         randmat.training{i_bl} = rand_FShift_StimDriven(p, RDK,  flag_traintype);
+        % which task?
+        pres_instruction(p,ps,RDK,i_bl,randmat.training{i_bl},1,key, randmat.training{i_bl}.trials(1).task); % Instruktion fürs Training
         [timing.training{i_bl},button_presses.training{i_bl},resp.training{i_bl}] = ...
             pres_FShift_StimDriven(p, ps, key, RDK, randmat.training{i_bl}, i_bl,1);
         save(sprintf('%s%s',p.log.path,p.filename),'timing','button_presses','resp','randmat','p', 'RDK')
@@ -451,6 +453,7 @@ while flag_trainend == 0 % do training until ended
     %rand('state',p.sub*i_bl) % determine randstate
     rng(p.sub*i_bl,'v4')
     randmat.training{i_bl} = rand_FShift_PerIrr(p, RDK,  1);
+    pres_instruction(p,ps,RDK,i_bl,randmat.training{i_bl},1,key,randmat.training{i_bl}.trials(1).task); % Instruktion fürs Training
     [timing.training{i_bl},button_presses.training{i_bl},resp.training{i_bl}] = ...
         pres_FShift_PerIrr(p, ps, key, RDK, randmat.training{i_bl}, i_bl,1);
     save(sprintf('%s%s',p.log.path,p.filename),'timing','button_presses','resp','randmat','p', 'RDK')
@@ -479,7 +482,9 @@ rng(p.sub,'v4')
 randmat.experiment = rand_FShift_StimDriven(p, RDK,  0);    % randomization
 for i_bl = p.flag_block:p.stim.blocknum
     % start experiment
-    [timing.experiment{i_bl},button_presses.experiment{i_bl},resp.experiment{i_bl}] = ...
+    t.whichtask = randmat.experiment.trials(find([randmat.experiment.trials.blocknum]==i_bl,1,'first')).task;
+    pres_instruction(p,ps,RDK,i_bl,randmat.experiment,2,key,  t.whichtask); % Instruktion fürs Training
+       [timing.experiment{i_bl},button_presses.experiment{i_bl},resp.experiment{i_bl}] = ...
         pres_FShift_StimDriven(p, ps, key, RDK, randmat.experiment, i_bl,0);
     % save logfiles
     save(sprintf('%s%s',p.log.path,p.filename),'timing','button_presses','resp','randmat','p', 'RDK')
