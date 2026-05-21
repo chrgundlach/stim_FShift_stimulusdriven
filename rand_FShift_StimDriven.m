@@ -153,7 +153,7 @@ end
 conmat.mats.RDKeventdirection = nan(max(p.stim.eventnum),conmat.totaltrials);
 conmat.mats.RDKeventdirection_lab = repmat("",max(p.stim.eventnum),conmat.totaltrials);
 t.dirsall = cell2mat(p.stim.event.RDK_movdir);
-t.dirsall_lab = ["up","down","left","right"];
+t.dirsall_lab = ["down","up","left","right"];
 for i_class = 1:2 % for target event classes
     t.idx = conmat.mats.eventdiscrtype == i_class & conmat.mats.task == 1 & conmat.mats.eventstim == 1;
     t.randidx = randsample(size(p.stim.event.RDK_movdir{i_class},1),sum(t.idx,"all"),true); % randomly select possible target from class
