@@ -83,7 +83,10 @@ p.stim.ITI              = [1 1];            % ITI range in seconds
 % event parameter for rectangle modulations
 p.stim.event.rect_mod       = {[1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
                                 [1 0 1 0; 0 1 0 1]};   % which synchronous changes [top right bottom left] are to be discriminated {class 1; class 2}
+
+%%%%% adjust this parameter for difficulty of rectangle task
 p.stim.event.rect_modsize   = [20];                  % size of rectangle modulations in pixels
+%%%%%
 p.stim.event.rect_moddur    = p.stim.event.length;   % duration of event length
 
 % event parameter for RDK modulations
@@ -119,7 +122,9 @@ p.stim.color_names      = {'red';'green';'blue'};
  
 RDK.event.type          = 'globalmotion';       % event type global motion
 RDK.event.duration      = p.stim.event.length;  % time of coherent motion
-RDK.event.coherence     = .4;                   % percentage of coherently moving dots 0.4 [changed from 0.4 to 0.3 to 0.4]
+%%%%% adjust this parameter for difficulty of RDK task
+RDK.event.coherence     = .4;                   % percentage of coherently moving dots 0.4
+%%%%%
 RDK.event.direction     = RDK.RDK(1).mov_dir;   % movement directions for events
 
 % fixation cross
@@ -454,7 +459,7 @@ key.keymap_ind = find(key.keymap);
 
 %% do training again?
 % loop for training to be repeated
-fprintf(1,'\nRDK Training starten mit 1; Rectangle Training starten mit 2')
+fprintf(1,'\nRDK Training starten mit 1; Rectangle Training starten mit 2; Training abbrechen mit n')
 inp.prompt_check = 0;
 while inp.prompt_check == 0             % loop to check for correct input
     [key.keyisdown,key.secs,key.keycode] = KbCheck;
@@ -462,6 +467,8 @@ while inp.prompt_check == 0             % loop to check for correct input
         flag_trainend = 0; inp.prompt_check = 1; flag_traintype = 1;
     elseif key.keycode(Buttons(9))==1
         flag_trainend = 0; inp.prompt_check = 1; flag_traintype = 2;
+    elseif key.keycode(key.NO)==1
+        flag_trainend = 1; inp.prompt_check = 1;
     end
     Screen('Flip', ps.window, 0);
 end
@@ -488,6 +495,7 @@ while flag_trainend == 0 % do training until ended
             flag_trainend = 0; inp.prompt_check = 1; flag_traintype = 2; i_bl = i_bl + 1;
         elseif key.keycode(key.NO)==1
             flag_trainend = 1; inp.prompt_check = 1;
+            
         end
         Screen('Flip', ps.window, 0);
     end
@@ -503,7 +511,8 @@ randmat.experiment = rand_FShift_StimDriven(p, RDK,  0);    % randomization
 for i_bl = p.flag_block:p.stim.blocknum
     % start experiment
     t.whichtask = randmat.experiment.trials(find([randmat.experiment.trials.blocknum]==i_bl,1,'first')).task;
-    pres_instruction(p,ps,RDK,i_bl,randmat.experiment,2,key,  t.whichtask); % Instruktion fürs Training
+    % pres_instruction(p,ps,RDK,i_bl,randmat.experiment,2,key,  t.whichtask); % Instruktion fürs Training
+    pres_instruction(p,ps,RDK,i_bl,randmat.experiment,0,key,  t.whichtask); % Instruktion fürs Training %% BRINAS SHORT TERM FIX
        [timing.experiment{i_bl},button_presses.experiment{i_bl},resp.experiment{i_bl}] = ...
         pres_FShift_StimDriven(p, ps, key, RDK, randmat.experiment, i_bl,0);
     % save logfiles
