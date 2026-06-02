@@ -73,7 +73,7 @@ p.stim.con_repeats_t    = [2];              % trial number/repeats for each even
 p.stim.triallength      = [4.8];
 p.stim.time_prechange   = [1.8 3];          % precue time in s; [upper lower] for randomization
 p.stim.event.type       = 1;                % types of events (1 = targets only, 2 = targets + distrators)
-p.stim.event.length     = 0.3;              % lengt of events in s
+p.stim.event.length     = 0.2;              % lengt of events in s
 p.stim.event.min_onset  = 0.4;              % min post-cue time before event onset in s
 p.stim.event.min_offset = 0;                % min offset from target end to end of trial in s
 p.stim.event.min_dist   = 0.8;              % min time between events in s
@@ -85,7 +85,7 @@ p.stim.event.rect_mod       = {[1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
                                 [1 0 1 0; 0 1 0 1]};   % which synchronous changes [top right bottom left] are to be discriminated {class 1; class 2}
 
 %%%%% adjust this parameter for difficulty of rectangle task
-p.stim.event.rect_modsize   = [20];                  % size of rectangle modulations in pixels
+p.stim.event.rect_modsize   = [15];                  % size of rectangle modulations in pixels (standard: 20)
 %%%%%
 p.stim.event.rect_moddur    = p.stim.event.length;   % duration of event length
 
@@ -123,7 +123,7 @@ p.stim.color_names      = {'red';'green';'blue'};
 RDK.event.type          = 'globalmotion';       % event type global motion
 RDK.event.duration      = p.stim.event.length;  % time of coherent motion
 %%%%% adjust this parameter for difficulty of RDK task
-RDK.event.coherence     = .4;                   % percentage of coherently moving dots 0.4
+RDK.event.coherence     = .3;                   % percentage of coherently moving dots 0.4
 %%%%%
 RDK.event.direction     = RDK.RDK(1).mov_dir;   % movement directions for events
 
