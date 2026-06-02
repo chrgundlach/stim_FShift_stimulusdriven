@@ -67,10 +67,9 @@ p.stim.condition        = [1:size(p.stim.center_col,1)*size(p.stim.RDKperi_col,1
                         %   TASK/ATTENTION [RDK task; rectangle task]
                         %   COLORCHANGE [c1 -> c2; c1 -> c3; c2 -> c1; c2 -> c3; c3 -> c1; c3 -> c2]
 % p.stim.eventnum_e       = [0 0 0 0 1 2 3 4];        % ratio of eventnumbers for experiment
-p.stim.eventnum_e       = [0 0 0 0 0 0 0 0 0 1 2 2 3 3 4 4];        % ratio of eventnumbers for experiment
+p.stim.eventnum_e       = [0 0 0 0 0 0 0 0 1 2 3 3 4 4];        % ratio of eventnumbers for experiment
 p.stim.eventnum_t       = [0 0 1 2 3 4];        % ratio of eventnumbers for training
-% p.stim.con_repeats      = [8];  % trial number/repeats for each eventnum and condition
-p.stim.con_repeats      = [3];  % trial number/repeats for each eventnum and condition
+p.stim.con_repeats      = [8];  % trial number/repeats for each eventnum and condition
 p.stim.con_repeats_t    = [2];              % trial number/repeats for each eventnum and condition
 p.stim.triallength      = [4.8];
 p.stim.time_prechange   = [1.8 3];          % precue time in s; [upper lower] for randomization
@@ -79,8 +78,7 @@ p.stim.event.length     = 0.2;              % lengt of events in s
 p.stim.event.min_onset  = 0.4;              % min post-cue time before event onset in s
 p.stim.event.min_offset = 0;                % min offset from target end to end of trial in s
 p.stim.event.min_dist   = 0.8;              % min time between events in s
-% p.stim.blocknum         = 24;               % number of blocks
-p.stim.blocknum         = 18;               % number of blocks
+p.stim.blocknum         = 24;               % number of blocks
 p.stim.ITI              = [1 1];            % ITI range in seconds
 
 % event parameter for rectangle modulations

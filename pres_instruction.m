@@ -34,8 +34,10 @@ INST.flag =                 {'TRAINING';'EXPERIMENT'};
 % training or experiment
 if con_flag == 1 % training
     INST.FirstLine = sprintf('%s - block %1.0f', INST.flag{1}, blocknum);
+    INST.idx = 1;
 elseif con_flag == 0 % experiment
     INST.FirstLine = sprintf('%s - Block %1.0f von %1.0f', INST.flag{2},blocknum,p.stim.blocknum);
+    INST.idx = 2;
 end
 
 % RDK task
@@ -62,6 +64,7 @@ INST.text{2} =              [...                % text for rectangle task
     '\noben UND unten oder links UND rechts.'...
     ];
 
+INST.TASK = {'PUNKTEWOLKENAUFGABE';'RECHTECKAUFGABE'};
 
 % position of fixation cross
 % INST.crs.xCoords =          [-p.crs_dims(1) p.crs_dims(1) 0 0];
@@ -111,7 +114,7 @@ for i_quad = 1:4 % shifst to quadrants
 end
 
 % show info outside
-fprintf('\nVersuchsperson startet %s Block %1.0f mit Leertaste...', INST.flag{flag_traintype},blocknum)
+fprintf('\nVersuchsperson startet %s %s Block %1.0f mit Leertaste...', INST.TASK{flag_traintype}, INST.flag{INST.idx},blocknum)
 
 % [key.pressed, key.firstPress]=KbQjueueCheck;
 key.rkey=key.SPACE;
