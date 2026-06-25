@@ -15,6 +15,9 @@ function [] = run_FShift_StimDriven(sub,flag_training, flag_isolum, flag_block)
 % - switch for training specifying the task to do
 % - behavioral readout
 
+% change from participant 7 onwards:
+%   - frequencies
+%   - background rectangle presented every second frame only
 
 
 % Christopher Gundlach, Maria Dotzer, Jonas Jänig  Leipzig, 2026,2023,2021, 2020
@@ -110,7 +113,8 @@ RDK.RDK(1).shape        = 1;                            % 1 = square RDK; 0 = el
 
 p.stim.pos_shift        = [-310 0; 310 0];              % position shift in pixel for stimuli in periphery [255 = 7.8°; 310 = 9.8°] either left or right
 % p.stim.freqs            = {[23];[17 20]};               % frequencies of {[center1];[peri1 peri2]} % pilot 1 and 2
-p.stim.freqs            = {[22];[16 19]};               % frequencies of {[center1];[peri1 peri2]} % from pilot 3 onwards
+% p.stim.freqs            = {[22];[16 19]};               % frequencies of {[center1];[peri1 peri2]} % from pilot 3 onwards
+p.stim.freqs            = {[23];[15 19]};               % frequencies of {[center1];[peri1 peri2]} % from pilot 7 onwards
 % p.stim.colors           = ...                           % "on" and "off" color
 %     {[1 0.4 0 1; p.scr_color(1:3) 1];...
 %     [0 0.4 1 1; p.scr_color(1:3) 1];...

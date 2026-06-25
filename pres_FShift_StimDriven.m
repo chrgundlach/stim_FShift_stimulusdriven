@@ -121,6 +121,8 @@ for i_tr = 1:numel(trialindex)
     rect.colmat = repmat(p.stim.colors{conmat.trials(trialindex(i_tr)).central_color(1)}(1,:), size(rect.posmat,1),1);
     rect.colmat(conmat.trials(trialindex(i_tr)).pre_change_frames+1:end,:) = ...
         repmat(p.stim.colors{conmat.trials(trialindex(i_tr)).central_color(2)}(1,:), conmat.trials(trialindex(i_tr)).post_change_frames,1);
+    % add background color to every second frame
+    rect.colmat(1:2:end,:) = repmat(RDKin.scr.input.BckGrCol,size(rect.colmat(1:2:end,:),1),1);
     rect.colmat_sh = reshape(rect.colmat',[4,p.scr_imgmultipl, frames.flips]);
 
     % testing drawing
